@@ -1,0 +1,22 @@
+{
+  "name": "chatgpt-apps-hello-world",
+  "version": "1.0.0",
+  "description": "Simgple ChatGPT app",
+  "scripts": {
+    "dev": "tsx --watch ./src/index.ts"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "express": "^5.1.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^20.0.0",
+    "@types/play-sound": "^1.1.2",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
