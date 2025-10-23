@@ -76,7 +76,7 @@ app.post("/mcp", async (req, res) => {
               if (!container) {
                 throw new Error("Weather widget container missing.");
               }
-              container.innerHTML = '<div style="padding:24px;font-family:Segoe UI,Arial,sans-serif;color:#0f172a;background:rgba(255,255,255,0.82);border-radius:16px;text-align:center;">Loading weather data...</div>';
+              container.innerHTML = '';
               ${fallbackScript}
               ${missingKeyWarning}
               let initialData = undefined;

@@ -124,7 +124,12 @@ function buildApiUrl({ lat, lon, apiKey, units }: Required<Pick<WeatherComponent
   return `https://api.openweathermap.org/data/2.5/weather?${params.toString()}`;
 }
 
-const containerRoots = new WeakMap<HTMLElement, Root>();
+type RootRecord = {
+  root: Root;
+  mount: HTMLElement;
+};
+
+const containerRoots = new WeakMap<HTMLElement, RootRecord>();
 
 const WeatherCard: React.FC<{ data: OpenWeatherResponse; units: WeatherUnits; title?: string }> = ({ data, units, title }) => {
   const primaryCondition = data.weather?.[0];
@@ -197,13 +202,13 @@ const WeatherApp: React.FC<WeatherComponentProps> = ({ lat, lon, apiKey, units =
   const hasRequiredParams = lat !== undefined && lon !== undefined && !!apiKey;
 
   useEffect(() => {
-    if (!hasRequiredParams) {
-      setState({ status: "error", message: "Missing latitude, longitude, or API key." });
+    if (initialData) {
+      setState({ status: "success", payload: initialData });
       return;
     }
 
-    if (initialData) {
-      setState({ status: "success", payload: initialData });
+    if (!hasRequiredParams) {
+      setState({ status: "error", message: "Missing latitude, longitude, or API key." });
       return;
     }
 
@@ -222,24 +227,46 @@ const WeatherApp: React.FC<WeatherComponentProps> = ({ lat, lon, apiKey, units =
         }
       })
       .catch((error: unknown) => {
-    if (!cancelled) {
-      const message = error instanceof Error ? error.message : "Unknown error loading weather data.";
-      setState({ status: "error", message });
-    }
-  });
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : "Unknown error loading weather data.";
+          setState({ status: "error", message });
+        }
+      });
 
-  return () => {
-    cancelled = true;
-  };
+    return () => {
+      cancelled = true;
+    };
   }, [lat, lon, apiKey, units, hasRequiredParams, initialData]);
 
   const data = state.status === "success" ? state.payload : null;
   const error = state.status === "error" ? state.message : undefined;
 
-  // 🔒 Critical bit: render NOTHING until data is ready (and no error)
-  if (!data) return null;
-  // If you also want to suppress HTML on errors, return null here too
-  // if (error) return null;
+  const renderContent = () => {
+    if (data) {
+      return <WeatherCard data={data} units={units} title={title} />;
+    }
+
+    if (error) {
+      return (
+        <div className="error">
+          <h2>Unable to load weather data</h2>
+          <p>{error}</p>
+          <p className="hint">Verify the latitude, longitude, and API key, then try again.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="loading">
+        <div className="spinner" />
+        <p>
+          {hasRequiredParams
+            ? "Fetching latest conditions..."
+            : "Provide latitude, longitude, and an API key to render the dashboard."}
+        </p>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -401,9 +428,7 @@ const WeatherApp: React.FC<WeatherComponentProps> = ({ lat, lon, apiKey, units =
           }
       }
     `}</style>
-      <div className="frame">
-        <WeatherCard data={data} units={units} title={title} />
-      </div>
+      <div className="frame">{renderContent()}</div>
     </>
   );
 };
@@ -426,8 +451,21 @@ function normalizeNumber(value: number | string | undefined): number | undefined
 }
 
 function renderWeatherWidget(container: HTMLElement, input: ToolInput = {}): void {
-  const root = containerRoots.get(container) ?? createRoot(container);
-  containerRoots.set(container, root);
+  const existing = containerRoots.get(container);
+  if (existing) {
+    existing.root.unmount();
+    if (existing.mount.parentElement) {
+      existing.mount.parentElement.removeChild(existing.mount);
+    }
+    containerRoots.delete(container);
+  }
+
+  const mountNode = document.createElement("div");
+  mountNode.className = "weather-widget-root";
+  container.appendChild(mountNode);
+
+  const root = createRoot(mountNode);
+  containerRoots.set(container, { root, mount: mountNode });
 
   const props: WeatherComponentProps = {
     lat: normalizeNumber(input.lat),
