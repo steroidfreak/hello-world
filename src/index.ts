@@ -9,7 +9,7 @@ import path from "node:path";
 const app = express();
 app.use(express.json());
 
-app.post("/", async (req, res) => {
+app.post("/mcp", async (req, res) => {
   try {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
